@@ -7,7 +7,7 @@
   },
   "defaults": {
     "build": {
-      "args": "",
+      "args": "--package mycore /home/crusso/motoko-core/src",
       "packtool": ""
     }
   },
