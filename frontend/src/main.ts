@@ -105,7 +105,7 @@ async function ensureAgent(): Promise<HttpAgent> {
 }
 
 /**
- * Renders a JavaScript value as an interactive, collapsible tree structure.
+ * Renders a JavaScript value as an interactive inspector (table for arrays, tree for objects).
  */
 function renderValueInspector(value: unknown, container: HTMLElement): void {
   container.innerHTML = '';
@@ -121,14 +121,174 @@ function renderValueInspector(value: unknown, container: HTMLElement): void {
     return typeof val;
   }
 
+  function isPrimitive(val: unknown): boolean {
+    const type = getValueType(val);
+    return ['string', 'number', 'boolean', 'bigint', 'null', 'undefined', 'Principal'].includes(type);
+  }
+
+  function renderPrimitiveValue(val: unknown): HTMLElement {
+    const type = getValueType(val);
+    const span = document.createElement('span');
+    span.className = `inspector-value type-${type}`;
+    
+    if (type === 'string') {
+      span.textContent = `"${val}"`;
+    } else if (type === 'bigint') {
+      span.textContent = `${val}n`;
+    } else if (type === 'Principal') {
+      span.textContent = (val as Principal).toText();
+      span.title = 'Principal';
+    } else if (type === 'null' || type === 'undefined') {
+      span.textContent = String(val);
+    } else {
+      span.textContent = String(val);
+    }
+    
+    return span;
+  }
+
+  function renderAsTable(arr: unknown[]): HTMLElement | null {
+    if (arr.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'inspector-empty';
+      empty.textContent = '[]';
+      return empty;
+    }
+
+    // Check if this is a rectangular array (array of arrays with same length)
+    const allArrays = arr.every(item => Array.isArray(item));
+    if (allArrays && arr.length > 0) {
+      const firstLen = (arr[0] as unknown[]).length;
+      const isRectangular = arr.every(item => Array.isArray(item) && item.length === firstLen);
+      
+      if (isRectangular && firstLen > 0) {
+        const table = document.createElement('table');
+        table.className = 'inspector-table';
+        
+        // Header with column indices
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        for (let i = 0; i < firstLen; i++) {
+          const th = document.createElement('th');
+          th.textContent = String(i);
+          headerRow.appendChild(th);
+        }
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // Body with rows
+        const tbody = document.createElement('tbody');
+        arr.forEach(row => {
+          const tr = document.createElement('tr');
+          (row as unknown[]).forEach(val => {
+            const td = document.createElement('td');
+            if (isPrimitive(val)) {
+              td.appendChild(renderPrimitiveValue(val));
+            } else {
+              td.appendChild(createNode(val, undefined, 0));
+            }
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        
+        return table;
+      }
+    }
+
+    // Check if all elements are objects with similar structure
+    const allObjects = arr.every(item => getValueType(item) === 'Object');
+    
+    if (allObjects) {
+      // Collect all unique keys from all objects
+      const allKeys = new Set<string>();
+      arr.forEach(item => {
+        Object.keys(item as object).forEach(k => allKeys.add(k));
+      });
+      
+      if (allKeys.size === 0) {
+        // Array of empty objects
+        const empty = document.createElement('div');
+        empty.className = 'inspector-empty';
+        empty.textContent = `Array(${arr.length}) of {}`;
+        return empty;
+      }
+
+      const keys = Array.from(allKeys);
+      const table = document.createElement('table');
+      table.className = 'inspector-table';
+      
+      // Header
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      keys.forEach(key => {
+        const th = document.createElement('th');
+        th.textContent = key;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      
+      // Body
+      const tbody = document.createElement('tbody');
+      arr.forEach(item => {
+        const row = document.createElement('tr');
+        keys.forEach(key => {
+          const td = document.createElement('td');
+          const val = (item as Record<string, unknown>)[key];
+          
+          if (isPrimitive(val)) {
+            td.appendChild(renderPrimitiveValue(val));
+          } else {
+            // Nested object/array - render as collapsible tree
+            td.appendChild(createNode(val, undefined, 0));
+          }
+          
+          row.appendChild(td);
+        });
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      
+      return table;
+    } else if (arr.every(isPrimitive)) {
+      // Array of primitives - render as simple table with one column
+      const table = document.createElement('table');
+      table.className = 'inspector-table';
+      
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      const th = document.createElement('th');
+      th.textContent = 'Value';
+      headerRow.appendChild(th);
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      
+      const tbody = document.createElement('tbody');
+      arr.forEach((item, idx) => {
+        const row = document.createElement('tr');
+        const td = document.createElement('td');
+        td.appendChild(renderPrimitiveValue(item));
+        row.appendChild(td);
+        tbody.appendChild(row);
+      });
+      table.appendChild(tbody);
+      
+      return table;
+    }
+    
+    // Mixed types - fall back to tree view
+    return null;
+  }
+
   function createNode(val: unknown, key?: string | number, depth = 0): HTMLElement {
     const node = document.createElement('div');
     node.className = 'inspector-node';
     node.style.paddingLeft = `${depth * 16}px`;
 
     const type = getValueType(val);
-    const isPrimitive = ['string', 'number', 'boolean', 'bigint', 'null', 'undefined'].includes(type);
-    const isExpandable = !isPrimitive;
+    const isExpandable = !isPrimitive(val);
 
     if (isExpandable) {
       const header = document.createElement('div');
@@ -152,8 +312,6 @@ function renderValueInspector(value: unknown, container: HTMLElement): void {
       } else if (type === 'Object') {
         const keys = Object.keys(val as object);
         typeEl.textContent = keys.length === 0 ? '{}' : `{${keys.length}}`;
-      } else if (type === 'Principal') {
-        typeEl.textContent = `Principal`;
       }
       
       header.appendChild(toggle);
@@ -173,18 +331,16 @@ function renderValueInspector(value: unknown, container: HTMLElement): void {
         if (isCollapsed && childrenContainer.children.length === 0) {
           // Lazy render children
           if (type === 'Array') {
-            (val as unknown[]).forEach((item, i) => {
-              childrenContainer.appendChild(createNode(item, i, depth + 1));
-            });
-          } else if (type === 'Principal') {
-            const textNode = document.createElement('div');
-            textNode.className = 'inspector-node';
-            textNode.style.paddingLeft = `${(depth + 1) * 16}px`;
-            const valueEl = document.createElement('span');
-            valueEl.className = 'inspector-value type-string';
-            valueEl.textContent = `"${(val as Principal).toText()}"`;
-            textNode.appendChild(valueEl);
-            childrenContainer.appendChild(textNode);
+            const arr = val as unknown[];
+            const table = renderAsTable(arr);
+            if (table) {
+              childrenContainer.appendChild(table);
+            } else {
+              // Fall back to tree view
+              arr.forEach((item, i) => {
+                childrenContainer.appendChild(createNode(item, i, depth + 1));
+              });
+            }
           } else {
             Object.entries(val as object).forEach(([k, v]) => {
               childrenContainer.appendChild(createNode(v, k, depth + 1));
@@ -210,20 +366,7 @@ function renderValueInspector(value: unknown, container: HTMLElement): void {
         line.appendChild(keyEl);
       }
       
-      const valueEl = document.createElement('span');
-      valueEl.className = `inspector-value type-${type}`;
-      
-      if (type === 'string') {
-        valueEl.textContent = `"${val}"`;
-      } else if (type === 'bigint') {
-        valueEl.textContent = `${val}n`;
-      } else if (type === 'null' || type === 'undefined') {
-        valueEl.textContent = String(val);
-      } else {
-        valueEl.textContent = String(val);
-      }
-      
-      line.appendChild(valueEl);
+      line.appendChild(renderPrimitiveValue(val));
       node.appendChild(line);
     }
     
@@ -235,6 +378,14 @@ function renderValueInspector(value: unknown, container: HTMLElement): void {
     emptyNode.className = 'inspector-value type-undefined';
     emptyNode.textContent = '()';
     container.appendChild(emptyNode);
+  } else if (Array.isArray(value)) {
+    // Top-level array - render as table if possible
+    const table = renderAsTable(value);
+    if (table) {
+      container.appendChild(table);
+    } else {
+      container.appendChild(createNode(value));
+    }
   } else {
     container.appendChild(createNode(value));
   }
