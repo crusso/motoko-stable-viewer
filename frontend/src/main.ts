@@ -406,6 +406,7 @@ function renderValueInspector(value: unknown, container: HTMLElement, retTypes: 
       const td = document.createElement('td');
       td.appendChild(renderIdlPrimitive(item, elemType));
       tr.appendChild(td);
+      tbody.appendChild(tr);
     });
     table.appendChild(tbody);
     return table;
