@@ -3,6 +3,8 @@ import { IDL, renderInput } from '@icp-sdk/core/candid';
 import type { InputBox } from '@icp-sdk/core/candid';
 import { Principal } from '@icp-sdk/core/principal';
 import { AuthClient } from '@icp-sdk/auth/client';
+// @ts-ignore – virtual module: text content of the .did file produced by the Motoko compiler
+import candidSource from 'virtual:backend-did';
 
 const APP_NAME = 'Motoko Stable Viewer';
 const II_CANISTER_ID = 'rdmx6-jaaaa-aaaaa-aaadq-cai'; // Internet Identity on mainnet; for local use dfx canister id internet_identity
@@ -762,6 +764,21 @@ async function renderApp(root: HTMLElement): Promise<void> {
     `<b>canister:</b> ${state.canisterId?.toText() ?? '(not set)'}`,
   ].join(' &middot; ');
   root.appendChild(debugBar);
+
+  // Candid interface collapsible section (the .did file produced by the Motoko compiler)
+  if (candidSource) {
+    const details = document.createElement('details');
+    details.className = 'candid-source';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Candid Interface';
+    details.appendChild(summary);
+    const pre = document.createElement('pre');
+    const code = document.createElement('code');
+    code.textContent = candidSource;
+    pre.appendChild(code);
+    details.appendChild(pre);
+    root.appendChild(details);
+  }
 
   if (state.error) {
     const errEl = document.createElement('div');

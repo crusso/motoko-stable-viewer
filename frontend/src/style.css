@@ -214,6 +214,42 @@ button:disabled {
   color: var(--text);
 }
 
+.candid-source {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  font-size: 12px;
+}
+
+.candid-source summary {
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 600;
+  user-select: none;
+}
+
+.candid-source summary:hover {
+  color: var(--text);
+}
+
+.candid-source pre {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.candid-source code {
+  color: #4ade80;
+  font-family: inherit;
+}
+
 /* Value Inspector Styles */
 .value-inspector {
   font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
