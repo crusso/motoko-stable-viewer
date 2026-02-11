@@ -21,12 +21,23 @@ export default defineConfig(({ mode }) => {
     rootEnv.VITE_VIEWER_BACKEND_CANISTER_ID?.trim() ||
     '';
 
+  const iiCanisterId =
+    frontendEnv.VITE_II_CANISTER_ID?.trim() ||
+    rootEnv.CANISTER_ID_INTERNET_IDENTITY?.trim() ||
+    '';
+
   return {
     root: __dirname,
     // Inject backend canister id from root .env (dfx writes CANISTER_ID_VIEWER_BACKEND there).
-    define: backendCanisterId
-      ? { 'import.meta.env.VITE_VIEWER_BACKEND_CANISTER_ID': JSON.stringify(backendCanisterId) }
-      : {},
+    // Inject II canister id for local development.
+    define: {
+      ...(backendCanisterId
+        ? { 'import.meta.env.VITE_VIEWER_BACKEND_CANISTER_ID': JSON.stringify(backendCanisterId) }
+        : {}),
+      ...(iiCanisterId
+        ? { 'import.meta.env.VITE_II_CANISTER_ID': JSON.stringify(iiCanisterId) }
+        : {}),
+    },
     resolve: {
       alias: {
         '@backend-idl': backendIdlPath,

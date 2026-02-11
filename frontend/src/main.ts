@@ -265,7 +265,7 @@ async function renderApp(root: HTMLElement): Promise<void> {
         onError: (err) => reject(err),
       };
       if (isLocalReplica()) {
-        opts.identityProvider = `http://localhost:4943?canisterId=${getIICanisterId()}`;
+        opts.identityProvider = `http://${getIICanisterId()}.localhost:4943`;
       }
       state.authClient!.login(opts);
     });
