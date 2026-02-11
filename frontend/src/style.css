@@ -221,6 +221,52 @@ button:disabled {
   line-height: 1.6;
 }
 
+.inspector-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  background: var(--bg);
+}
+
+.inspector-table thead {
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+}
+
+.inspector-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  color: #a78bfa;
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+.inspector-table td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.inspector-table td .inspector-node {
+  padding-left: 0 !important;
+}
+
+.inspector-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.inspector-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.inspector-empty {
+  color: var(--muted);
+  font-style: italic;
+  padding: 0.5rem 0;
+}
+
 .inspector-node {
   margin: 0;
 }
@@ -304,6 +350,11 @@ button:disabled {
 .inspector-value.type-undefined {
   color: var(--muted);
   font-style: italic;
+}
+
+.inspector-variant-tag {
+  color: #f472b6;
+  font-weight: 600;
 }
 
 .inspector-children {

@@ -105,289 +105,469 @@ async function ensureAgent(): Promise<HttpAgent> {
 }
 
 /**
- * Renders a JavaScript value as an interactive inspector (table for arrays, tree for objects).
+ * Unwrap RecClass to get the underlying type.
  */
-function renderValueInspector(value: unknown, container: HTMLElement): void {
+function unwrapIdlType(ty: IDL.Type): IDL.Type {
+  while (ty instanceof IDL.RecClass) {
+    const inner = ty.getType();
+    if (!inner) break;
+    ty = inner;
+  }
+  return ty;
+}
+
+/**
+ * True when the IDL type should be rendered as a single inline value (no expand/collapse).
+ */
+function isIdlPrimitive(ty: IDL.Type): boolean {
+  const t = unwrapIdlType(ty);
+  return (
+    t instanceof IDL.BoolClass ||
+    t instanceof IDL.NullClass ||
+    t instanceof IDL.TextClass ||
+    t instanceof IDL.IntClass ||
+    t instanceof IDL.NatClass ||
+    t instanceof IDL.FloatClass ||
+    t instanceof IDL.FixedIntClass ||
+    t instanceof IDL.FixedNatClass ||
+    t instanceof IDL.PrincipalClass ||
+    t instanceof IDL.EmptyClass ||
+    t instanceof IDL.ReservedClass
+  );
+}
+
+/**
+ * Render a primitive Candid value as a styled inline element.
+ */
+function renderIdlPrimitive(val: unknown, ty: IDL.Type): HTMLElement {
+  const t = unwrapIdlType(ty);
+  const span = document.createElement('span');
+
+  if (t instanceof IDL.TextClass) {
+    span.className = 'inspector-value type-string';
+    span.textContent = `"${val}"`;
+  } else if (t instanceof IDL.BoolClass) {
+    span.className = 'inspector-value type-boolean';
+    span.textContent = String(val);
+  } else if (t instanceof IDL.NatClass || t instanceof IDL.IntClass || t instanceof IDL.FixedNatClass || t instanceof IDL.FixedIntClass) {
+    span.className = 'inspector-value type-bigint';
+    span.textContent = String(val);
+  } else if (t instanceof IDL.FloatClass) {
+    span.className = 'inspector-value type-number';
+    span.textContent = String(val);
+  } else if (t instanceof IDL.PrincipalClass) {
+    span.className = 'inspector-value type-Principal';
+    span.textContent = val instanceof Principal ? val.toText() : String(val);
+  } else if (t instanceof IDL.NullClass) {
+    span.className = 'inspector-value type-null';
+    span.textContent = 'null';
+  } else {
+    span.className = 'inspector-value type-undefined';
+    span.textContent = String(val);
+  }
+
+  return span;
+}
+
+/**
+ * Renders a Candid value guided by its IDL type.
+ *
+ * - Vec<Record>  → table (columns = record field names)
+ * - Vec<Tuple>   → table (columns = tuple component indices)
+ * - Vec<prim>    → single-column table
+ * - Record       → key/value list
+ * - Tuple        → indexed list
+ * - Variant      → shows the active tag
+ * - Opt          → shows presence / absence
+ * - Primitives   → inline coloured text
+ */
+function renderValueInspector(value: unknown, container: HTMLElement, retTypes: IDL.Type[]): void {
   container.innerHTML = '';
   container.className = 'value-inspector';
-  
-  function getValueType(val: unknown): string {
-    if (val === null) return 'null';
-    if (val === undefined) return 'undefined';
-    if (typeof val === 'bigint') return 'bigint';
-    if (val instanceof Principal) return 'Principal';
-    if (Array.isArray(val)) return 'Array';
-    if (typeof val === 'object') return 'Object';
-    return typeof val;
+
+  // Single return value (most common) – unwrap
+  if (retTypes.length === 0) {
+    const emptyNode = document.createElement('div');
+    emptyNode.className = 'inspector-value type-null';
+    emptyNode.textContent = '()';
+    container.appendChild(emptyNode);
+    return;
   }
 
-  function isPrimitive(val: unknown): boolean {
-    const type = getValueType(val);
-    return ['string', 'number', 'boolean', 'bigint', 'null', 'undefined', 'Principal'].includes(type);
+  if (retTypes.length === 1) {
+    container.appendChild(renderTypedValue(value, retTypes[0], 0));
+    return;
   }
 
-  function renderPrimitiveValue(val: unknown): HTMLElement {
-    const type = getValueType(val);
-    const span = document.createElement('span');
-    span.className = `inspector-value type-${type}`;
-    
-    if (type === 'string') {
-      span.textContent = `"${val}"`;
-    } else if (type === 'bigint') {
-      span.textContent = `${val}n`;
-    } else if (type === 'Principal') {
-      span.textContent = (val as Principal).toText();
-      span.title = 'Principal';
-    } else if (type === 'null' || type === 'undefined') {
-      span.textContent = String(val);
-    } else {
-      span.textContent = String(val);
+  // Multiple return values – render as a tuple-style list
+  const values = value as unknown[];
+  retTypes.forEach((ty, i) => {
+    const row = document.createElement('div');
+    row.className = 'inspector-node';
+    const keyEl = document.createElement('span');
+    keyEl.className = 'inspector-key';
+    keyEl.textContent = `[${i}]: `;
+    row.appendChild(keyEl);
+    row.appendChild(renderTypedValue(values[i], ty, 0));
+    container.appendChild(row);
+  });
+
+  /**
+   * Render a single value guided by its IDL type.
+   */
+  function renderTypedValue(val: unknown, ty: IDL.Type, depth: number): HTMLElement {
+    const t = unwrapIdlType(ty);
+
+    // ── Primitives ──────────────────────────────────────────────
+    if (isIdlPrimitive(t)) {
+      return renderIdlPrimitive(val, t);
     }
-    
+
+    // ── Opt<T> ──────────────────────────────────────────────────
+    if (t instanceof IDL.OptClass) {
+      const arr = val as unknown[];
+      if (arr.length === 0) {
+        const span = document.createElement('span');
+        span.className = 'inspector-value type-null';
+        span.textContent = 'null';
+        return span;
+      }
+      // Render the inner value with a subtle ?-prefix
+      const wrap = document.createElement('span');
+      const label = document.createElement('span');
+      label.className = 'inspector-type';
+      label.textContent = '? ';
+      wrap.appendChild(label);
+      wrap.appendChild(renderTypedValue(arr[0], t._type, depth));
+      return wrap;
+    }
+
+    // ── Variant ─────────────────────────────────────────────────
+    if (t instanceof IDL.VariantClass) {
+      const obj = val as Record<string, unknown>;
+      const activeTag = Object.keys(obj)[0];
+      const activeVal = obj[activeTag];
+      const fieldType = t._fields.find(([name]) => name === activeTag)?.[1];
+
+      const wrap = document.createElement('span');
+      const tagEl = document.createElement('span');
+      tagEl.className = 'inspector-variant-tag';
+      tagEl.textContent = `#${activeTag}`;
+      wrap.appendChild(tagEl);
+
+      // If the payload is non-null, render it
+      if (fieldType && !(fieldType instanceof IDL.NullClass)) {
+        const sep = document.createTextNode(' ');
+        wrap.appendChild(sep);
+        wrap.appendChild(renderTypedValue(activeVal, fieldType, depth));
+      }
+      return wrap;
+    }
+
+    // ── Vec<T> ──────────────────────────────────────────────────
+    if (t instanceof IDL.VecClass) {
+      return renderVec(val as unknown[], t, depth);
+    }
+
+    // ── Record ──────────────────────────────────────────────────
+    if (t instanceof IDL.TupleClass) {
+      return renderTuple(val as unknown[], t, depth);
+    }
+
+    if (t instanceof IDL.RecordClass) {
+      return renderRecord(val as Record<string, unknown>, t, depth);
+    }
+
+    // ── Fallback ────────────────────────────────────────────────
+    const span = document.createElement('span');
+    span.className = 'inspector-value';
+    span.textContent = typeof val === 'bigint' ? String(val) : JSON.stringify(val, (_, v) => (typeof v === 'bigint' ? String(v) : v), 2);
     return span;
   }
 
-  function renderAsTable(arr: unknown[]): HTMLElement | null {
+  /**
+   * Render a Vec. Uses a table when the element type is a Record or Tuple.
+   */
+  function renderVec(arr: unknown[], vecType: IDL.VecClass<unknown>, depth: number): HTMLElement {
+    const elemType = unwrapIdlType(vecType._type);
+
     if (arr.length === 0) {
-      const empty = document.createElement('div');
+      const empty = document.createElement('span');
       empty.className = 'inspector-empty';
       empty.textContent = '[]';
       return empty;
     }
 
-    // Check if this is a rectangular array (array of arrays with same length)
-    const allArrays = arr.every(item => Array.isArray(item));
-    if (allArrays && arr.length > 0) {
-      const firstLen = (arr[0] as unknown[]).length;
-      const isRectangular = arr.every(item => Array.isArray(item) && item.length === firstLen);
-      
-      if (isRectangular && firstLen > 0) {
-        const table = document.createElement('table');
-        table.className = 'inspector-table';
-        
-        // Header with column indices
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
-        for (let i = 0; i < firstLen; i++) {
-          const th = document.createElement('th');
-          th.textContent = String(i);
-          headerRow.appendChild(th);
-        }
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-        
-        // Body with rows
-        const tbody = document.createElement('tbody');
-        arr.forEach(row => {
-          const tr = document.createElement('tr');
-          (row as unknown[]).forEach(val => {
-            const td = document.createElement('td');
-            if (isPrimitive(val)) {
-              td.appendChild(renderPrimitiveValue(val));
-            } else {
-              td.appendChild(createNode(val, undefined, 0));
-            }
-            tr.appendChild(td);
-          });
-          tbody.appendChild(tr);
-        });
-        table.appendChild(tbody);
-        
-        return table;
-      }
+    // Vec<Record> → table with field-name columns
+    if (elemType instanceof IDL.RecordClass && !(elemType instanceof IDL.TupleClass)) {
+      return renderRecordTable(arr as Record<string, unknown>[], elemType, depth);
     }
 
-    // Check if all elements are objects with similar structure
-    const allObjects = arr.every(item => getValueType(item) === 'Object');
-    
-    if (allObjects) {
-      // Collect all unique keys from all objects
-      const allKeys = new Set<string>();
-      arr.forEach(item => {
-        Object.keys(item as object).forEach(k => allKeys.add(k));
-      });
-      
-      if (allKeys.size === 0) {
-        // Array of empty objects
-        const empty = document.createElement('div');
-        empty.className = 'inspector-empty';
-        empty.textContent = `Array(${arr.length}) of {}`;
-        return empty;
-      }
+    // Vec<Tuple> → table with numeric columns
+    if (elemType instanceof IDL.TupleClass) {
+      return renderTupleTable(arr as unknown[][], elemType, depth);
+    }
 
-      const keys = Array.from(allKeys);
-      const table = document.createElement('table');
-      table.className = 'inspector-table';
-      
-      // Header
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
-      keys.forEach(key => {
-        const th = document.createElement('th');
-        th.textContent = key;
-        headerRow.appendChild(th);
-      });
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-      
-      // Body
-      const tbody = document.createElement('tbody');
-      arr.forEach(item => {
-        const row = document.createElement('tr');
-        keys.forEach(key => {
-          const td = document.createElement('td');
-          const val = (item as Record<string, unknown>)[key];
-          
-          if (isPrimitive(val)) {
-            td.appendChild(renderPrimitiveValue(val));
-          } else {
-            // Nested object/array - render as collapsible tree
-            td.appendChild(createNode(val, undefined, 0));
-          }
-          
-          row.appendChild(td);
-        });
-        tbody.appendChild(row);
-      });
-      table.appendChild(tbody);
-      
-      return table;
-    } else if (arr.every(isPrimitive)) {
-      // Array of primitives - render as simple table with one column
-      const table = document.createElement('table');
-      table.className = 'inspector-table';
-      
-      const thead = document.createElement('thead');
-      const headerRow = document.createElement('tr');
+    // Vec<primitive> → simple single-column table
+    if (isIdlPrimitive(elemType)) {
+      return renderPrimitiveTable(arr, elemType);
+    }
+
+    // Vec<Vec<...>>, Vec<Variant>, etc. – collapsible list
+    return renderCollapsibleList(arr, elemType, depth);
+  }
+
+  /**
+   * Table for Vec<Record>.
+   */
+  function renderRecordTable(arr: Record<string, unknown>[], recType: IDL.RecordClass, depth: number): HTMLElement {
+    const fields = recType._fields; // Array<[string, Type]>
+    const table = document.createElement('table');
+    table.className = 'inspector-table';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    fields.forEach(([name, fType]) => {
       const th = document.createElement('th');
-      th.textContent = 'Value';
+      th.textContent = name;
+      th.title = unwrapIdlType(fType).name;
       headerRow.appendChild(th);
-      thead.appendChild(headerRow);
-      table.appendChild(thead);
-      
-      const tbody = document.createElement('tbody');
-      arr.forEach((item, idx) => {
-        const row = document.createElement('tr');
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    arr.forEach(item => {
+      const tr = document.createElement('tr');
+      fields.forEach(([name, fType]) => {
         const td = document.createElement('td');
-        td.appendChild(renderPrimitiveValue(item));
-        row.appendChild(td);
-        tbody.appendChild(row);
+        td.appendChild(renderTypedValue(item[name], fType, depth + 1));
+        tr.appendChild(td);
       });
-      table.appendChild(tbody);
-      
-      return table;
-    }
-    
-    // Mixed types - fall back to tree view
-    return null;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
   }
 
-  function createNode(val: unknown, key?: string | number, depth = 0): HTMLElement {
-    const node = document.createElement('div');
-    node.className = 'inspector-node';
-    node.style.paddingLeft = `${depth * 16}px`;
+  /**
+   * Table for Vec<Tuple>.
+   */
+  function renderTupleTable(arr: unknown[][], tupleType: IDL.TupleClass<unknown[]>, depth: number): HTMLElement {
+    const components = tupleType._fields; // [["_0_", T0], ["_1_", T1], ...]
+    const table = document.createElement('table');
+    table.className = 'inspector-table';
 
-    const type = getValueType(val);
-    const isExpandable = !isPrimitive(val);
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    components.forEach(([, cType], i) => {
+      const th = document.createElement('th');
+      th.textContent = String(i);
+      th.title = unwrapIdlType(cType).name;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
 
-    if (isExpandable) {
-      const header = document.createElement('div');
-      header.className = 'inspector-header';
-      
-      const toggle = document.createElement('span');
-      toggle.className = 'inspector-toggle collapsed';
-      toggle.textContent = '▶';
-      
-      const keyEl = document.createElement('span');
-      keyEl.className = 'inspector-key';
-      if (key !== undefined) {
-        keyEl.textContent = `${key}: `;
-      }
-      
-      const typeEl = document.createElement('span');
-      typeEl.className = `inspector-type type-${type.toLowerCase()}`;
-      
-      if (type === 'Array') {
-        typeEl.textContent = `Array(${(val as unknown[]).length})`;
-      } else if (type === 'Object') {
-        const keys = Object.keys(val as object);
-        typeEl.textContent = keys.length === 0 ? '{}' : `{${keys.length}}`;
-      }
-      
-      header.appendChild(toggle);
-      header.appendChild(keyEl);
-      header.appendChild(typeEl);
-      node.appendChild(header);
-      
-      const childrenContainer = document.createElement('div');
-      childrenContainer.className = 'inspector-children';
-      childrenContainer.style.display = 'none';
-      
-      header.style.cursor = 'pointer';
-      header.onclick = (e) => {
-        e.stopPropagation();
-        const isCollapsed = toggle.classList.contains('collapsed');
-        
-        if (isCollapsed && childrenContainer.children.length === 0) {
-          // Lazy render children
-          if (type === 'Array') {
-            const arr = val as unknown[];
-            const table = renderAsTable(arr);
-            if (table) {
-              childrenContainer.appendChild(table);
-            } else {
-              // Fall back to tree view
-              arr.forEach((item, i) => {
-                childrenContainer.appendChild(createNode(item, i, depth + 1));
-              });
-            }
-          } else {
-            Object.entries(val as object).forEach(([k, v]) => {
-              childrenContainer.appendChild(createNode(v, k, depth + 1));
-            });
-          }
-        }
-        
-        toggle.classList.toggle('collapsed');
-        toggle.textContent = isCollapsed ? '▼' : '▶';
-        childrenContainer.style.display = isCollapsed ? 'block' : 'none';
-      };
-      
-      node.appendChild(childrenContainer);
-    } else {
-      // Primitive value
-      const line = document.createElement('div');
-      line.className = 'inspector-line';
-      
-      if (key !== undefined) {
-        const keyEl = document.createElement('span');
-        keyEl.className = 'inspector-key';
-        keyEl.textContent = `${key}: `;
-        line.appendChild(keyEl);
-      }
-      
-      line.appendChild(renderPrimitiveValue(val));
-      node.appendChild(line);
-    }
-    
-    return node;
+    const tbody = document.createElement('tbody');
+    arr.forEach(row => {
+      const tr = document.createElement('tr');
+      components.forEach(([fieldName, cType], i) => {
+        const td = document.createElement('td');
+        // Tuples decode as arrays
+        const v = Array.isArray(row) ? row[i] : (row as Record<string, unknown>)[fieldName];
+        td.appendChild(renderTypedValue(v, cType, depth + 1));
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    return table;
   }
-  
-  if (value === undefined) {
-    const emptyNode = document.createElement('div');
-    emptyNode.className = 'inspector-value type-undefined';
-    emptyNode.textContent = '()';
-    container.appendChild(emptyNode);
-  } else if (Array.isArray(value)) {
-    // Top-level array - render as table if possible
-    const table = renderAsTable(value);
-    if (table) {
-      container.appendChild(table);
-    } else {
-      container.appendChild(createNode(value));
-    }
-  } else {
-    container.appendChild(createNode(value));
+
+  /**
+   * Simple single-column table for Vec<primitive>.
+   */
+  function renderPrimitiveTable(arr: unknown[], elemType: IDL.Type): HTMLElement {
+    const table = document.createElement('table');
+    table.className = 'inspector-table';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    const th = document.createElement('th');
+    th.textContent = unwrapIdlType(elemType).name;
+    headerRow.appendChild(th);
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    arr.forEach(item => {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.appendChild(renderIdlPrimitive(item, elemType));
+      tr.appendChild(td);
+    });
+    table.appendChild(tbody);
+    return table;
+  }
+
+  /**
+   * Collapsible list for Vec of non-tabular element types.
+   */
+  function renderCollapsibleList(arr: unknown[], elemType: IDL.Type, depth: number): HTMLElement {
+    const wrap = document.createElement('div');
+    wrap.className = 'inspector-node';
+
+    const header = document.createElement('div');
+    header.className = 'inspector-header';
+    header.style.cursor = 'pointer';
+
+    const toggle = document.createElement('span');
+    toggle.className = 'inspector-toggle collapsed';
+    toggle.textContent = '▶';
+
+    const typeEl = document.createElement('span');
+    typeEl.className = 'inspector-type type-array';
+    typeEl.textContent = `Vec(${arr.length})`;
+
+    header.appendChild(toggle);
+    header.appendChild(typeEl);
+    wrap.appendChild(header);
+
+    const childrenContainer = document.createElement('div');
+    childrenContainer.className = 'inspector-children';
+    childrenContainer.style.display = 'none';
+
+    header.onclick = (e) => {
+      e.stopPropagation();
+      const isCollapsed = toggle.classList.contains('collapsed');
+      if (isCollapsed && childrenContainer.children.length === 0) {
+        arr.forEach((item, i) => {
+          const row = document.createElement('div');
+          row.className = 'inspector-node';
+          row.style.paddingLeft = `${(depth + 1) * 16}px`;
+          const keyEl = document.createElement('span');
+          keyEl.className = 'inspector-key';
+          keyEl.textContent = `[${i}]: `;
+          row.appendChild(keyEl);
+          row.appendChild(renderTypedValue(item, elemType, depth + 1));
+          childrenContainer.appendChild(row);
+        });
+      }
+      toggle.classList.toggle('collapsed');
+      toggle.textContent = isCollapsed ? '▼' : '▶';
+      childrenContainer.style.display = isCollapsed ? 'block' : 'none';
+    };
+
+    wrap.appendChild(childrenContainer);
+    return wrap;
+  }
+
+  /**
+   * Render a Record as a key/value list.
+   */
+  function renderRecord(val: Record<string, unknown>, recType: IDL.RecordClass, depth: number): HTMLElement {
+    const fields = recType._fields;
+    const wrap = document.createElement('div');
+    wrap.className = 'inspector-node';
+
+    const header = document.createElement('div');
+    header.className = 'inspector-header';
+    header.style.cursor = 'pointer';
+
+    const toggle = document.createElement('span');
+    toggle.className = 'inspector-toggle collapsed';
+    toggle.textContent = '▶';
+
+    const typeEl = document.createElement('span');
+    typeEl.className = 'inspector-type type-object';
+    typeEl.textContent = `{${fields.length}}`;
+
+    header.appendChild(toggle);
+    header.appendChild(typeEl);
+    wrap.appendChild(header);
+
+    const childrenContainer = document.createElement('div');
+    childrenContainer.className = 'inspector-children';
+    childrenContainer.style.display = 'none';
+
+    header.onclick = (e) => {
+      e.stopPropagation();
+      const isCollapsed = toggle.classList.contains('collapsed');
+      if (isCollapsed && childrenContainer.children.length === 0) {
+        fields.forEach(([name, fType]) => {
+          const row = document.createElement('div');
+          row.className = 'inspector-node';
+          row.style.paddingLeft = `${(depth + 1) * 16}px`;
+          const keyEl = document.createElement('span');
+          keyEl.className = 'inspector-key';
+          keyEl.textContent = `${name}: `;
+          row.appendChild(keyEl);
+          row.appendChild(renderTypedValue(val[name], fType, depth + 1));
+          childrenContainer.appendChild(row);
+        });
+      }
+      toggle.classList.toggle('collapsed');
+      toggle.textContent = isCollapsed ? '▼' : '▶';
+      childrenContainer.style.display = isCollapsed ? 'block' : 'none';
+    };
+
+    wrap.appendChild(childrenContainer);
+    return wrap;
+  }
+
+  /**
+   * Render a Tuple as an indexed list.
+   */
+  function renderTuple(val: unknown[], tupleType: IDL.TupleClass<unknown[]>, depth: number): HTMLElement {
+    const components = tupleType._fields;
+    const wrap = document.createElement('div');
+    wrap.className = 'inspector-node';
+
+    const header = document.createElement('div');
+    header.className = 'inspector-header';
+    header.style.cursor = 'pointer';
+
+    const toggle = document.createElement('span');
+    toggle.className = 'inspector-toggle collapsed';
+    toggle.textContent = '▶';
+
+    const typeEl = document.createElement('span');
+    typeEl.className = 'inspector-type type-array';
+    typeEl.textContent = `Tuple(${components.length})`;
+
+    header.appendChild(toggle);
+    header.appendChild(typeEl);
+    wrap.appendChild(header);
+
+    const childrenContainer = document.createElement('div');
+    childrenContainer.className = 'inspector-children';
+    childrenContainer.style.display = 'none';
+
+    header.onclick = (e) => {
+      e.stopPropagation();
+      const isCollapsed = toggle.classList.contains('collapsed');
+      if (isCollapsed && childrenContainer.children.length === 0) {
+        components.forEach(([fieldName, cType], i) => {
+          const row = document.createElement('div');
+          row.className = 'inspector-node';
+          row.style.paddingLeft = `${(depth + 1) * 16}px`;
+          const keyEl = document.createElement('span');
+          keyEl.className = 'inspector-key';
+          keyEl.textContent = `${i}: `;
+          row.appendChild(keyEl);
+          const v = Array.isArray(val) ? val[i] : (val as Record<string, unknown>)[fieldName];
+          row.appendChild(renderTypedValue(v, cType, depth + 1));
+          childrenContainer.appendChild(row);
+        });
+      }
+      toggle.classList.toggle('collapsed');
+      toggle.textContent = isCollapsed ? '▼' : '▶';
+      childrenContainer.style.display = isCollapsed ? 'block' : 'none';
+    };
+
+    wrap.appendChild(childrenContainer);
+    return wrap;
   }
 }
 
@@ -474,7 +654,7 @@ function renderMethodSection(
       const result = await methodFn(...values);
       resultEl.innerHTML = '';
       resultEl.classList.add('success');
-      renderValueInspector(result, resultEl);
+      renderValueInspector(result, resultEl, func.retTypes);
     } catch (err) {
       resultEl.innerHTML = '';
       resultEl.className = 'result error';
