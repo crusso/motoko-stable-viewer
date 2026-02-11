@@ -104,6 +104,142 @@ async function ensureAgent(): Promise<HttpAgent> {
   return agent;
 }
 
+/**
+ * Renders a JavaScript value as an interactive, collapsible tree structure.
+ */
+function renderValueInspector(value: unknown, container: HTMLElement): void {
+  container.innerHTML = '';
+  container.className = 'value-inspector';
+  
+  function getValueType(val: unknown): string {
+    if (val === null) return 'null';
+    if (val === undefined) return 'undefined';
+    if (typeof val === 'bigint') return 'bigint';
+    if (val instanceof Principal) return 'Principal';
+    if (Array.isArray(val)) return 'Array';
+    if (typeof val === 'object') return 'Object';
+    return typeof val;
+  }
+
+  function createNode(val: unknown, key?: string | number, depth = 0): HTMLElement {
+    const node = document.createElement('div');
+    node.className = 'inspector-node';
+    node.style.paddingLeft = `${depth * 16}px`;
+
+    const type = getValueType(val);
+    const isPrimitive = ['string', 'number', 'boolean', 'bigint', 'null', 'undefined'].includes(type);
+    const isExpandable = !isPrimitive;
+
+    if (isExpandable) {
+      const header = document.createElement('div');
+      header.className = 'inspector-header';
+      
+      const toggle = document.createElement('span');
+      toggle.className = 'inspector-toggle collapsed';
+      toggle.textContent = '▶';
+      
+      const keyEl = document.createElement('span');
+      keyEl.className = 'inspector-key';
+      if (key !== undefined) {
+        keyEl.textContent = `${key}: `;
+      }
+      
+      const typeEl = document.createElement('span');
+      typeEl.className = `inspector-type type-${type.toLowerCase()}`;
+      
+      if (type === 'Array') {
+        typeEl.textContent = `Array(${(val as unknown[]).length})`;
+      } else if (type === 'Object') {
+        const keys = Object.keys(val as object);
+        typeEl.textContent = keys.length === 0 ? '{}' : `{${keys.length}}`;
+      } else if (type === 'Principal') {
+        typeEl.textContent = `Principal`;
+      }
+      
+      header.appendChild(toggle);
+      header.appendChild(keyEl);
+      header.appendChild(typeEl);
+      node.appendChild(header);
+      
+      const childrenContainer = document.createElement('div');
+      childrenContainer.className = 'inspector-children';
+      childrenContainer.style.display = 'none';
+      
+      header.style.cursor = 'pointer';
+      header.onclick = (e) => {
+        e.stopPropagation();
+        const isCollapsed = toggle.classList.contains('collapsed');
+        
+        if (isCollapsed && childrenContainer.children.length === 0) {
+          // Lazy render children
+          if (type === 'Array') {
+            (val as unknown[]).forEach((item, i) => {
+              childrenContainer.appendChild(createNode(item, i, depth + 1));
+            });
+          } else if (type === 'Principal') {
+            const textNode = document.createElement('div');
+            textNode.className = 'inspector-node';
+            textNode.style.paddingLeft = `${(depth + 1) * 16}px`;
+            const valueEl = document.createElement('span');
+            valueEl.className = 'inspector-value type-string';
+            valueEl.textContent = `"${(val as Principal).toText()}"`;
+            textNode.appendChild(valueEl);
+            childrenContainer.appendChild(textNode);
+          } else {
+            Object.entries(val as object).forEach(([k, v]) => {
+              childrenContainer.appendChild(createNode(v, k, depth + 1));
+            });
+          }
+        }
+        
+        toggle.classList.toggle('collapsed');
+        toggle.textContent = isCollapsed ? '▼' : '▶';
+        childrenContainer.style.display = isCollapsed ? 'block' : 'none';
+      };
+      
+      node.appendChild(childrenContainer);
+    } else {
+      // Primitive value
+      const line = document.createElement('div');
+      line.className = 'inspector-line';
+      
+      if (key !== undefined) {
+        const keyEl = document.createElement('span');
+        keyEl.className = 'inspector-key';
+        keyEl.textContent = `${key}: `;
+        line.appendChild(keyEl);
+      }
+      
+      const valueEl = document.createElement('span');
+      valueEl.className = `inspector-value type-${type}`;
+      
+      if (type === 'string') {
+        valueEl.textContent = `"${val}"`;
+      } else if (type === 'bigint') {
+        valueEl.textContent = `${val}n`;
+      } else if (type === 'null' || type === 'undefined') {
+        valueEl.textContent = String(val);
+      } else {
+        valueEl.textContent = String(val);
+      }
+      
+      line.appendChild(valueEl);
+      node.appendChild(line);
+    }
+    
+    return node;
+  }
+  
+  if (value === undefined) {
+    const emptyNode = document.createElement('div');
+    emptyNode.className = 'inspector-value type-undefined';
+    emptyNode.textContent = '()';
+    container.appendChild(emptyNode);
+  } else {
+    container.appendChild(createNode(value));
+  }
+}
+
 function renderMethodSection(
   methodName: string,
   func: { argTypes: IDL.Type[]; retTypes: IDL.Type[]; annotations: string[] },
@@ -185,15 +321,13 @@ function renderMethodSection(
       resultEl.className = 'result';
       resultEl.textContent = 'Calling…';
       const result = await methodFn(...values);
-      const display =
-        result === undefined
-          ? '()'
-          : JSON.stringify(result, (_, v) => (typeof v === 'bigint' ? String(v) : v), 2);
-      resultEl.textContent = display;
+      resultEl.innerHTML = '';
       resultEl.classList.add('success');
+      renderValueInspector(result, resultEl);
     } catch (err) {
+      resultEl.innerHTML = '';
+      resultEl.className = 'result error';
       resultEl.textContent = err instanceof Error ? err.message : String(err);
-      resultEl.classList.add('error');
     } finally {
       callBtn.disabled = false;
     }

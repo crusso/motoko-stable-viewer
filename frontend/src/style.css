@@ -187,8 +187,7 @@ button:disabled {
   background: var(--bg);
   border: 1px solid var(--border);
   font-size: 12px;
-  white-space: pre-wrap;
-  word-break: break-all;
+  overflow-x: auto;
 }
 
 .method-section .result.success {
@@ -213,4 +212,100 @@ button:disabled {
 
 .debug-bar b {
   color: var(--text);
+}
+
+/* Value Inspector Styles */
+.value-inspector {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.inspector-node {
+  margin: 0;
+}
+
+.inspector-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 2px 0;
+  user-select: none;
+}
+
+.inspector-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.inspector-toggle {
+  display: inline-block;
+  width: 14px;
+  font-size: 10px;
+  color: var(--muted);
+  transition: transform 0.1s;
+}
+
+.inspector-toggle.collapsed {
+  transform: rotate(0deg);
+}
+
+.inspector-toggle:not(.collapsed) {
+  transform: rotate(0deg);
+}
+
+.inspector-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 2px 0;
+}
+
+.inspector-key {
+  color: #a78bfa;
+  font-weight: 500;
+}
+
+.inspector-type {
+  color: var(--muted);
+  font-style: italic;
+  font-size: 11px;
+}
+
+.inspector-type.type-array {
+  color: #fbbf24;
+}
+
+.inspector-type.type-object {
+  color: #60a5fa;
+}
+
+.inspector-type.type-principal {
+  color: #34d399;
+}
+
+.inspector-value {
+  font-family: inherit;
+}
+
+.inspector-value.type-string {
+  color: #4ade80;
+}
+
+.inspector-value.type-number,
+.inspector-value.type-bigint {
+  color: #60a5fa;
+}
+
+.inspector-value.type-boolean {
+  color: #fb923c;
+}
+
+.inspector-value.type-null,
+.inspector-value.type-undefined {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.inspector-children {
+  margin-left: 0;
 }
