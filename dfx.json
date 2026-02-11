@@ -3,6 +3,11 @@
     "viewer_backend": {
       "main": "src/viewer_backend/main.mo",
       "type": "motoko"
+    },
+    "viewer_frontend": {
+      "type": "assets",
+      "source": ["frontend/dist"],
+      "dependencies": ["viewer_backend"]
     }
   },
   "defaults": {

@@ -49,3 +49,42 @@ service : {
 For some reason, the .did dfx produces is actually empty (perhaps because these extra methods are generated in desugaring, after type checking).
 
 Maybe that's a feature, not a bug ;->.
+
+## Frontend (Candid UI + Internet Identity)
+
+A generic Candid UI frontend is in `frontend/`. It uses the **generic rendering class** from `@icp-sdk/core/candid` (`renderInput` / `Render` from [candid-ui](https://github.com/dfinity/icp-js-core/blob/main/packages/core/src/candid/candid-ui.ts)) to build forms for every backend method, and supports **Internet Identity** login so methods are called with an authenticated agent.
+
+### Setup
+
+1. **Build the backend** so the Candid idl is available:
+   ```bash
+   dfx build viewer_backend
+   dfx generate viewer_backend
+   ```
+   The frontend loads the backend idl from `.dfx/local/canisters/viewer_backend/viewer_backend.did.js` or, if that is missing, from `src/declarations/viewer_backend/viewer_backend.did.js` (created by `dfx generate`).
+
+2. **Configure env** (see `frontend/.env.example`):
+   ```bash
+   cd frontend
+   cp .env.example .env
+   # Set VITE_VIEWER_BACKEND_CANISTER_ID=$(dfx canister id viewer_backend)
+   # For local II: VITE_II_CANISTER_ID=$(dfx canister id internet_identity)
+   ```
+
+3. **Install and run**:
+   ```bash
+   npm install
+   npm run dev
+   ```
+   Or build and deploy the frontend canister:
+   ```bash
+   npm run build
+   dfx deploy viewer_frontend
+   ```
+
+### Features
+
+- **Generic Candid UI**: Renders one section per canister method; each argument uses the `renderInput()` / `Render` visitor from `@icp-sdk/core/candid` (input fields, option/variant/vec/record forms).
+- **Random**: Fill arguments with random values for quick testing.
+- **Query vs update**: Buttons call the method as query or update as defined in the idl.
+- **Internet Identity**: "Login with Internet Identity" creates an authenticated agent; all calls then use that identity. Logout clears it.
