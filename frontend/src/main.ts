@@ -7,29 +7,37 @@ import { AuthClient } from '@icp-sdk/auth/client';
 const APP_NAME = 'Motoko Stable Viewer';
 const II_CANISTER_ID = 'rdmx6-jaaaa-aaaaa-aaadq-cai'; // Internet Identity on mainnet; for local use dfx canister id internet_identity
 
-/** True when the app is served from a local replica (dev). */
+/**
+ * True when the app is served locally (dev).
+ * Works for: localhost, 127.0.0.1, <canister-id>.localhost, Vite dev server, etc.
+ */
 function isLocalReplica(): boolean {
   if (typeof window === 'undefined') return false;
   const h = window.location.hostname;
-  return (
+  // Any flavour of localhost / loopback, including *.localhost (dfx pattern)
+  if (
     h === 'localhost' ||
     h === '127.0.0.1' ||
     h === '[::1]' ||
-    h.endsWith('.localhost') ||           // dfx serves canisters as <id>.localhost
-    h.endsWith('.127.0.0.1') ||
-    window.location.port === '4943' ||    // directly on the replica port
-    window.location.port === '5173' ||    // vite dev server
-    window.location.port === '5174'       // vite dev server (alt port)
-  );
+    h.endsWith('.localhost')
+  ) return true;
+  // Known local-only ports
+  const p = window.location.port;
+  if (p === '4943' || p === '5173' || p === '5174') return true;
+  return false;
 }
 
+/**
+ * Agent host URL.
+ *  - Local dev (Vite): use page origin – Vite proxy forwards /api to the replica.
+ *  - Local (asset canister on replica): use page origin – it IS the replica.
+ *  - Mainnet: use the IC boundary nodes.
+ */
 function getHost(): string {
   if (isLocalReplica()) {
-    // If we're already on the replica (port 4943), use the same origin
-    if (window.location.port === '4943') {
-      return window.location.origin;
-    }
-    return 'http://127.0.0.1:4943';
+    // Always use current page origin. In the Vite dev server the proxy
+    // forwards /api/* to the local replica, so this just works.
+    return window.location.origin;
   }
   return 'https://icp-api.io';
 }
