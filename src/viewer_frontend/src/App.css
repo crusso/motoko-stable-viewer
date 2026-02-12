@@ -1,0 +1,220 @@
+/* ── reset & base ──────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  background: #f5f7fa;
+  color: #1a1a2e;
+  line-height: 1.5;
+}
+
+/* ── app layout ────────────────────────────────────────────────── */
+.app {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+header h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+header .subtitle {
+  margin-top: 0.4rem;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+header code {
+  background: #e5e7eb;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+/* ── connection bar ────────────────────────────────────────────── */
+.connect-bar {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.connect-bar p {
+  margin-bottom: 0.75rem;
+  color: #6b7280;
+}
+
+.connect-form {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.connect-form input {
+  width: 340px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.connect-form button {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.connect-form button:hover {
+  background: #2563eb;
+}
+
+/* ── sections ──────────────────────────────────────────────────── */
+section {
+  margin-bottom: 2rem;
+}
+
+section h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #374151;
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 0.35rem;
+}
+
+/* ── method card ───────────────────────────────────────────────── */
+.method-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.method-name {
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  color: #1d4ed8;
+  margin-bottom: 0.75rem;
+}
+
+.method-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.method-params label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.method-params input {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  width: 170px;
+}
+
+.method-params input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.method-params button {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.method-params button:hover {
+  background: #2563eb;
+}
+
+.method-params button:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.no-params {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  font-style: italic;
+  align-self: center;
+}
+
+/* ── results ───────────────────────────────────────────────────── */
+.result {
+  margin-top: 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.result-meta {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.result pre {
+  padding: 0.75rem;
+  font-size: 0.82rem;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  overflow-x: auto;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── error ─────────────────────────────────────────────────────── */
+.error {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 0.85rem;
+}
