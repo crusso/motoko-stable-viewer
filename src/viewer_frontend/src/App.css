@@ -15,9 +15,14 @@ body {
   line-height: 1.5;
 }
 
+code {
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
 /* ── app layout ────────────────────────────────────────────────── */
 .app {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
 }
@@ -43,7 +48,6 @@ header code {
   background: #e5e7eb;
   padding: 0.15em 0.4em;
   border-radius: 4px;
-  font-size: 0.9em;
 }
 
 /* ── connection bar ────────────────────────────────────────────── */
@@ -89,20 +93,6 @@ header code {
   background: #2563eb;
 }
 
-/* ── sections ──────────────────────────────────────────────────── */
-section {
-  margin-bottom: 2rem;
-}
-
-section h2 {
-  font-size: 1.15rem;
-  font-weight: 600;
-  margin-bottom: 0.75rem;
-  color: #374151;
-  border-bottom: 2px solid #e5e7eb;
-  padding-bottom: 0.35rem;
-}
-
 /* ── method card ───────────────────────────────────────────────── */
 .method-card {
   background: #fff;
@@ -113,11 +103,43 @@ section h2 {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
+.method-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
+}
+
 .method-name {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
   color: #1d4ed8;
+}
+
+.method-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15em 0.5em;
+  border-radius: 4px;
+}
+
+.method-badge.query {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.method-badge.update {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.method-sig {
+  font-size: 0.8rem;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  color: #9ca3af;
   margin-bottom: 0.75rem;
 }
 
@@ -135,6 +157,11 @@ section h2 {
   font-size: 0.82rem;
   color: #6b7280;
   font-weight: 500;
+}
+
+.param-label code {
+  font-size: 0.85em;
+  color: #6b7280;
 }
 
 .method-params input {
@@ -197,15 +224,103 @@ section h2 {
   border-bottom: 1px solid #e5e7eb;
 }
 
-.result pre {
+.result-body {
   padding: 0.75rem;
-  font-size: 0.82rem;
-  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
   overflow-x: auto;
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
+}
+
+/* ── data table (Vec<Record|Tuple>) ───────────────────────────── */
+.cv-table-wrap {
+  overflow-x: auto;
+}
+
+.cv-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cv-data-table th {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  background: #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.cv-data-table td {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+}
+
+.cv-data-table tbody tr:hover {
+  background: #f0f4ff;
+}
+
+/* ── key-value table (single Record/Tuple) ────────────────────── */
+.cv-kv-table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cv-kv-table th {
+  text-align: right;
+  padding: 0.25rem 0.6rem 0.25rem 0;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+  vertical-align: top;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.cv-kv-table td {
+  padding: 0.25rem 0;
+  vertical-align: top;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+}
+
+/* ── variant ──────────────────────────────────────────────────── */
+.cv-variant-tag {
+  font-weight: 600;
+  color: #7c3aed;
+}
+
+.cv-variant-body {
+  margin-left: 0.25rem;
+  color: #4b5563;
+}
+
+/* ── vec list (non-record) ────────────────────────────────────── */
+.cv-vec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cv-vec-item {
+  padding: 0.2rem 0;
+}
+
+/* ── misc value styles ────────────────────────────────────────── */
+.cv-null {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.cv-empty {
+  color: #9ca3af;
+  font-style: italic;
 }
 
 /* ── error ─────────────────────────────────────────────────────── */
