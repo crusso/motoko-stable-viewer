@@ -4,6 +4,9 @@
  * typed input controls, and renders results by walking the IDL type tree
  * (mapping Vec<Record|Tuple> to tables, etc.).
  *
+ * Methods whose signature matches (opt T, nat) -> vec ... are detected as
+ * paginated and get automatic Next / Prev / First controls.
+ *
  * Props:
  *   idlFactory  – the Candid idlFactory function  ({ IDL }) => IDL.Service
  *   actor       – a @dfinity/agent Actor instance wired to the canister
@@ -17,7 +20,6 @@ import { IDL } from "@dfinity/candid";
 import "./CandidUI.css";
 
 // ── IDL type detection ───────────────────────────────────────────
-// Obtain constructor references via dummy instances for instanceof checks.
 
 const OptCtor = IDL.Opt(IDL.Null).constructor;
 const VecCtor = IDL.Vec(IDL.Null).constructor;
@@ -112,6 +114,43 @@ function getServiceMethods(factory) {
   }));
 }
 
+// ── Pagination detection ─────────────────────────────────────────
+
+/** A method is paginated when its signature is (opt T, nat) → (vec ...) */
+function isPaginatedMethod(method) {
+  const { argTypes, retTypes } = method;
+  return (
+    argTypes.length === 2 &&
+    isOpt(argTypes[0]) &&
+    isIntType(argTypes[1]) &&
+    retTypes.length > 0 &&
+    isVec(retTypes[0])
+  );
+}
+
+/**
+ * Extract the cursor key from the last item in a result page.
+ * For Vec<Tuple(K,…)>  → first component
+ * For Vec<Record{…}>   → first field whose type matches cursorType
+ * For Vec<K>           → the item itself
+ */
+function extractCursor(retType, lastItem, cursorType) {
+  const inner = retType._type;
+
+  if (isTuple(inner)) {
+    return Array.isArray(lastItem) ? lastItem[0] : lastItem[inner._fields[0][0]];
+  }
+
+  if (isRecord(inner)) {
+    const match = inner._fields.find(([, ft]) => ft === cursorType);
+    const fieldName = match ? match[0] : inner._fields[0][0];
+    return lastItem[fieldName];
+  }
+
+  // Simple vec (Vec<nat>, Vec<text>, …)
+  return lastItem;
+}
+
 // ── Input conversion (string → candid value) ────────────────────
 
 function convertInput(type, str) {
@@ -138,7 +177,6 @@ function CandidValue({ type, value }) {
     return <span className="cui-null">-</span>;
   }
 
-  // Opt
   if (isOpt(type)) {
     if (!Array.isArray(value) || value.length === 0) {
       return <span className="cui-null">null</span>;
@@ -146,7 +184,6 @@ function CandidValue({ type, value }) {
     return <CandidValue type={type._type} value={value[0]} />;
   }
 
-  // Vec
   if (isVec(type)) {
     const inner = type._type;
     if ((isRecord(inner) || isTuple(inner)) && value.length > 0) {
@@ -155,7 +192,6 @@ function CandidValue({ type, value }) {
     if (value.length === 0) {
       return <span className="cui-empty">(empty)</span>;
     }
-    // Nested complex types — render each on its own line
     if (isVec(inner) || isRecord(inner) || isTuple(inner)) {
       return (
         <div className="cui-vec-list">
@@ -167,7 +203,6 @@ function CandidValue({ type, value }) {
         </div>
       );
     }
-    // Simple vec — single-column table
     return (
       <DataTable
         type={IDL.Record({ value: inner })}
@@ -176,7 +211,6 @@ function CandidValue({ type, value }) {
     );
   }
 
-  // Record (non-tuple)
   if (isRecord(type)) {
     return (
       <table className="cui-kv-table">
@@ -194,7 +228,6 @@ function CandidValue({ type, value }) {
     );
   }
 
-  // Tuple
   if (isTuple(type)) {
     return (
       <table className="cui-kv-table">
@@ -215,7 +248,6 @@ function CandidValue({ type, value }) {
     );
   }
 
-  // Variant
   if (isVariant(type)) {
     if (typeof value !== "object" || value === null) {
       return <span>{String(value)}</span>;
@@ -236,7 +268,6 @@ function CandidValue({ type, value }) {
     );
   }
 
-  // Primitives
   if (typeof value === "bigint") return <span>{value.toString()}</span>;
   if (typeof value === "boolean")
     return <span>{value ? "true" : "false"}</span>;
@@ -284,7 +315,162 @@ function DataTable({ type, rows }) {
   );
 }
 
-// ── Method card ──────────────────────────────────────────────────
+// ── Paginated method card ────────────────────────────────────────
+
+function PaginatedMethodCard({ actor, method }) {
+  const { name, argTypes, retTypes, annotations } = method;
+  const cursorType = argTypes[0]._type; // T in Opt(T)
+  const retType = retTypes[0];
+  const isQuery = annotations.includes("query");
+  const sig = `(${argTypes.map((t) => typeLabel(t)).join(", ")}) \u2192 (${retTypes.map((t) => typeLabel(t)).join(", ")})`;
+
+  const [pageSize, setPageSize] = useState("20");
+  const [displayItems, setDisplayItems] = useState(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [currentCursor, setCurrentCursor] = useState(null);
+  const [cursorStack, setCursorStack] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const ps = Math.max(1, parseInt(pageSize, 10) || 20);
+  const pageNum = cursorStack.length + 1;
+
+  const fetchPage = async (cursor) => {
+    if (!actor) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const isFirst = cursor === null;
+      // On non-first pages the backend returns the cursor row again
+      // (inclusive start), so we fetch one extra to skip that overlap,
+      // plus one extra to probe whether more rows exist.
+      const fetchCount = isFirst ? ps + 1 : ps + 2;
+      const optCursor = isFirst ? [] : [cursor];
+      const raw = await actor[name](optCursor, BigInt(fetchCount));
+
+      let items;
+      let more;
+      if (isFirst) {
+        items = raw.slice(0, ps);
+        more = raw.length > ps;
+      } else {
+        // Skip the overlap row (first result == cursor row)
+        const rest = raw.slice(1);
+        items = rest.slice(0, ps);
+        more = rest.length > ps;
+      }
+
+      setDisplayItems(items);
+      setHasMore(more);
+    } catch (e) {
+      setError(e.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goFirst = () => {
+    setCurrentCursor(null);
+    setCursorStack([]);
+    fetchPage(null);
+  };
+
+  const goNext = () => {
+    if (!displayItems || displayItems.length === 0) return;
+    const lastItem = displayItems[displayItems.length - 1];
+    const nextCursor = extractCursor(retType, lastItem, cursorType);
+    setCursorStack((prev) => [...prev, currentCursor]);
+    setCurrentCursor(nextCursor);
+    fetchPage(nextCursor);
+  };
+
+  const goPrev = () => {
+    if (cursorStack.length === 0) return;
+    const prevCursor = cursorStack[cursorStack.length - 1];
+    setCursorStack((prev) => prev.slice(0, -1));
+    setCurrentCursor(prevCursor);
+    fetchPage(prevCursor);
+  };
+
+  const loaded = displayItems !== null;
+
+  return (
+    <div className="cui-method-card">
+      <div className="cui-method-header">
+        <h3 className="cui-method-name">{name}</h3>
+        <span
+          className={`cui-method-badge ${isQuery ? "cui-badge-query" : "cui-badge-update"}`}
+        >
+          {isQuery ? "query" : "update"}
+        </span>
+      </div>
+      <div className="cui-method-sig">{sig}</div>
+
+      {/* Controls */}
+      <div className="cui-method-params">
+        <label>
+          <span className="cui-param-label">page size</span>
+          <input
+            type="number"
+            min="1"
+            value={pageSize}
+            onChange={(e) => setPageSize(e.target.value)}
+          />
+        </label>
+        <button onClick={goFirst} disabled={loading}>
+          {loading && !loaded ? "Loading\u2026" : loaded ? "Reload" : "Load"}
+        </button>
+      </div>
+
+      {/* Pagination bar */}
+      {loaded && (
+        <div className="cui-pager">
+          <button
+            className="cui-pager-btn"
+            onClick={goFirst}
+            disabled={loading || pageNum === 1}
+            title="First page"
+          >
+            &laquo; First
+          </button>
+          <button
+            className="cui-pager-btn"
+            onClick={goPrev}
+            disabled={loading || pageNum === 1}
+            title="Previous page"
+          >
+            &lsaquo; Prev
+          </button>
+          <span className="cui-pager-info">Page {pageNum}</span>
+          <button
+            className="cui-pager-btn"
+            onClick={goNext}
+            disabled={loading || !hasMore}
+            title="Next page"
+          >
+            Next &rsaquo;
+          </button>
+        </div>
+      )}
+
+      {error && <div className="cui-error">{error}</div>}
+
+      {loaded && (
+        <div className="cui-result">
+          <div className="cui-result-meta">
+            {displayItems.length} entries
+            {loading && " — loading\u2026"}
+          </div>
+          <div className="cui-result-body">
+            <CandidValue type={retType} value={displayItems} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Generic (non-paginated) method card ──────────────────────────
 
 function MethodCard({ actor, method }) {
   const { name, argTypes, retTypes, annotations } = method;
@@ -383,9 +569,13 @@ export default function CandidUI({ idlFactory, actor }) {
 
   return (
     <div className="cui-root">
-      {methods.map((m) => (
-        <MethodCard key={m.name} actor={actor} method={m} />
-      ))}
+      {methods.map((m) =>
+        isPaginatedMethod(m) ? (
+          <PaginatedMethodCard key={m.name} actor={actor} method={m} />
+        ) : (
+          <MethodCard key={m.name} actor={actor} method={m} />
+        )
+      )}
     </div>
   );
 }

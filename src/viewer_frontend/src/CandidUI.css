@@ -123,6 +123,49 @@ code {
   align-self: center;
 }
 
+/* ── pagination bar ────────────────────────────────────────────── */
+.cui-pager {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0;
+}
+
+.cui-pager-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.cui-pager-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.cui-pager-btn:disabled {
+  color: #d1d5db;
+  border-color: #e5e7eb;
+  cursor: not-allowed;
+  background: #fafafa;
+}
+
+.cui-pager-info {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  padding: 0 0.5rem;
+  min-width: 5rem;
+  text-align: center;
+}
+
 /* ── results ───────────────────────────────────────────────────── */
 .cui-result {
   margin-top: 0.75rem;
