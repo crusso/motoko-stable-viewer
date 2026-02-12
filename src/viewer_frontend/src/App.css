@@ -47,6 +47,73 @@ header code {
   font-size: 0.9em;
 }
 
+/* ── home page ─────────────────────────────────────────────────── */
+.home-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 2rem;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.home-card h2 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.75rem;
+}
+
+.home-card p {
+  color: #6b7280;
+  font-size: 0.95rem;
+  max-width: 480px;
+  margin: 0 auto 1.25rem;
+  line-height: 1.6;
+}
+
+.home-card code {
+  background: #e5e7eb;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.admin-link {
+  display: inline-block;
+  padding: 0.6rem 1.4rem;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.admin-link:hover {
+  background: #2563eb;
+}
+
+/* ── admin nav ─────────────────────────────────────────────────── */
+.admin-nav {
+  margin-bottom: 1.25rem;
+}
+
+.admin-nav a {
+  color: #3b82f6;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.admin-nav a:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
 /* ── connection bar ────────────────────────────────────────────── */
 .connect-bar {
   background: #fff;
