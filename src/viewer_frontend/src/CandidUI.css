@@ -1,0 +1,251 @@
+/* ═══════════════════════════════════════════════════════════════════
+   CandidUI — self-contained styles.
+   All class names are prefixed with `cui-` to avoid collisions.
+   ═══════════════════════════════════════════════════════════════════ */
+
+code {
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+/* ── method card ───────────────────────────────────────────────── */
+.cui-method-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.cui-method-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.25rem;
+}
+
+.cui-method-name {
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  color: #1d4ed8;
+}
+
+.cui-method-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.15em 0.5em;
+  border-radius: 4px;
+}
+
+.cui-badge-query {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.cui-badge-update {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.cui-method-sig {
+  font-size: 0.8rem;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  color: #9ca3af;
+  margin-bottom: 0.75rem;
+}
+
+/* ── params ────────────────────────────────────────────────────── */
+.cui-method-params {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.cui-method-params label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.cui-param-label code {
+  font-size: 0.85em;
+  color: #6b7280;
+}
+
+.cui-method-params input {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  width: 170px;
+}
+
+.cui-method-params input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.cui-method-params button {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.cui-method-params button:hover {
+  background: #2563eb;
+}
+
+.cui-method-params button:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.cui-no-params {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  font-style: italic;
+  align-self: center;
+}
+
+/* ── results ───────────────────────────────────────────────────── */
+.cui-result {
+  margin-top: 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cui-result-meta {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cui-result-body {
+  padding: 0.75rem;
+  overflow-x: auto;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+/* ── data table (Vec<Record|Tuple>) ───────────────────────────── */
+.cui-table-wrap {
+  overflow-x: auto;
+}
+
+.cui-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cui-data-table th {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  background: #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.cui-data-table td {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+}
+
+.cui-data-table tbody tr:hover {
+  background: #f0f4ff;
+}
+
+/* ── key-value table (single Record/Tuple) ────────────────────── */
+.cui-kv-table {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.cui-kv-table th {
+  text-align: right;
+  padding: 0.25rem 0.6rem 0.25rem 0;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+  vertical-align: top;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.cui-kv-table td {
+  padding: 0.25rem 0;
+  vertical-align: top;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+}
+
+/* ── variant ──────────────────────────────────────────────────── */
+.cui-variant-tag {
+  font-weight: 600;
+  color: #7c3aed;
+}
+
+.cui-variant-body {
+  margin-left: 0.25rem;
+  color: #4b5563;
+}
+
+/* ── vec list (non-record) ────────────────────────────────────── */
+.cui-vec-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cui-vec-item {
+  padding: 0.2rem 0;
+}
+
+/* ── misc value styles ────────────────────────────────────────── */
+.cui-null {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.cui-empty {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* ── error ─────────────────────────────────────────────────────── */
+.cui-error {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 0.85rem;
+}
