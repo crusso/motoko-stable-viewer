@@ -277,36 +277,79 @@ function CandidValue({ type, value }) {
 
 // ── Table for Vec<Record|Tuple> ──────────────────────────────────
 
-function DataTable({ type, rows }) {
+/**
+ * Build a flat list of columns from an outer Record/Tuple type.
+ * If a field is itself a Record or Tuple its inner fields are promoted to
+ * top-level columns so the table reads naturally (e.g. a Map entry
+ * `(Nat, {name: Text; city: Text})` becomes columns  0 | name | city
+ * rather than  0 | {name, city}  with a nested sub-table).
+ */
+function flattenColumns(type) {
   const fields = type._fields;
-  const isTup = isTuple(type);
-  const headers = fields.map(([name], i) => (isTup ? String(i) : name));
+  const outerIsTup = isTuple(type);
+  const cols = [];
+
+  for (let i = 0; i < fields.length; i++) {
+    const [name, ft] = fields[i];
+    const outerHeader = outerIsTup ? String(i) : name;
+
+    // How to pull the outer value out of a row
+    const extractOuter = outerIsTup
+      ? (row) => (Array.isArray(row) ? row[i] : row[name])
+      : (row) => row[name];
+
+    if (isRecord(ft) || isTuple(ft)) {
+      // Flatten one level: promote inner fields to columns
+      const innerFields = ft._fields;
+      const innerIsTup = isTuple(ft);
+
+      for (let j = 0; j < innerFields.length; j++) {
+        const [innerName, innerFt] = innerFields[j];
+        cols.push({
+          header: innerIsTup ? `${outerHeader}.${j}` : innerName,
+          type: innerFt,
+          extract(row) {
+            const outer = extractOuter(row);
+            if (outer == null) return undefined;
+            return innerIsTup
+              ? (Array.isArray(outer) ? outer[j] : outer[innerName])
+              : outer[innerName];
+          },
+        });
+      }
+    } else {
+      cols.push({
+        header: outerHeader,
+        type: ft,
+        extract: extractOuter,
+      });
+    }
+  }
+
+  return cols;
+}
+
+function DataTable({ type, rows }) {
+  const columns = useMemo(() => flattenColumns(type), [type]);
 
   return (
     <div className="cui-table-wrap">
       <table className="cui-data-table">
         <thead>
           <tr>
-            {headers.map((h, i) => (
-              <th key={i}>{h}</th>
+            {columns.map((col, i) => (
+              <th key={i}>{col.header}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, ri) => (
             <tr key={ri}>
-              {fields.map(([name, ft], ci) => {
-                const cell = isTup
-                  ? Array.isArray(row)
-                    ? row[ci]
-                    : row[name]
-                  : row[name];
-                return (
-                  <td key={ci}>
-                    <CandidValue type={ft} value={cell} />
-                  </td>
-                );
-              })}
+              {columns.map((col, ci) => (
+                <td key={ci}>
+                  <CandidValue type={col.type} value={col.extract(row)} />
+                </td>
+              ))}
             </tr>
           ))}
         </tbody>
