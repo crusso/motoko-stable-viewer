@@ -8,6 +8,47 @@ code {
   font-size: 0.9em;
 }
 
+/* ── tab bar ───────────────────────────────────────────────────── */
+.cui-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.cui-tab {
+  padding: 0.45rem 0.9rem;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 0.85rem;
+  font-weight: 500;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.cui-tab:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.cui-tab-active {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.cui-tab-active:hover {
+  background: #2563eb;
+  color: #fff;
+}
+
 /* ── method card ───────────────────────────────────────────────── */
 .cui-method-card {
   background: #fff;

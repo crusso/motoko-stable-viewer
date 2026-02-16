@@ -15,7 +15,7 @@
  *   <CandidUI idlFactory={idlFactory} actor={actor} />
  */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { IDL } from "@dfinity/candid";
 import "./CandidUI.css";
 
@@ -610,15 +610,44 @@ export default function CandidUI({ idlFactory, actor }) {
     [idlFactory]
   );
 
+  const [activeTab, setActiveTab] = useState(() =>
+    methods.length > 0 ? methods[0].name : null
+  );
+
+  const selectTab = useCallback((name) => setActiveTab(name), []);
+
+  const activeMethod = methods.find((m) => m.name === activeTab);
+
   return (
     <div className="cui-root">
-      {methods.map((m) =>
-        isPaginatedMethod(m) ? (
-          <PaginatedMethodCard key={m.name} actor={actor} method={m} />
-        ) : (
-          <MethodCard key={m.name} actor={actor} method={m} />
-        )
-      )}
+      <div className="cui-tabs" role="tablist">
+        {methods.map((m) => (
+          <button
+            key={m.name}
+            role="tab"
+            aria-selected={m.name === activeTab}
+            className={`cui-tab ${m.name === activeTab ? "cui-tab-active" : ""}`}
+            onClick={() => selectTab(m.name)}
+          >
+            {m.name}
+          </button>
+        ))}
+      </div>
+
+      {methods.map((m) => (
+        <div
+          key={m.name}
+          className="cui-tab-panel"
+          role="tabpanel"
+          style={{ display: m.name === activeTab ? "block" : "none" }}
+        >
+          {isPaginatedMethod(m) ? (
+            <PaginatedMethodCard actor={actor} method={m} />
+          ) : (
+            <MethodCard actor={actor} method={m} />
+          )}
+        </div>
+      ))}
     </div>
   );
 }
