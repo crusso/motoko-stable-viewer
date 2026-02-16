@@ -8,7 +8,9 @@
   },
   "dependencies": {
     "@dfinity/agent": "^2.2.0",
+    "@dfinity/auth-client": "^2.2.0",
     "@dfinity/candid": "^2.2.0",
+    "@dfinity/identity": "^2.2.0",
     "@dfinity/principal": "^2.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

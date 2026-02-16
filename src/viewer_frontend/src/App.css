@@ -114,6 +114,80 @@ header code {
   text-decoration: underline;
 }
 
+/* ── auth bar ──────────────────────────────────────────────────── */
+.auth-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0.75rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  flex-wrap: wrap;
+}
+
+.auth-anon {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.auth-principal {
+  font-size: 0.82rem;
+  color: #374151;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auth-principal code {
+  font-size: 0.85em;
+  background: #f3f4f6;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+}
+
+.auth-btn {
+  padding: 0.4rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.auth-btn-login {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.auth-btn-login:hover {
+  background: #2563eb;
+}
+
+.auth-btn-login:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+.auth-btn-logout {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.auth-btn-logout:hover {
+  background: #e5e7eb;
+}
+
 /* ── connection bar ────────────────────────────────────────────── */
 .connect-bar {
   background: #fff;
