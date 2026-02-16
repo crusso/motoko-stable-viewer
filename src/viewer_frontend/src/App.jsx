@@ -25,9 +25,9 @@ function HomePage() {
       <div className="home-card">
         <h2>Welcome</h2>
         <p>
-          This frontend lets you inspect the stable variables exposed by the
-          <code>viewer_backend</code> canister through its auto-generated query
-          methods.
+          This frontend lets you browse the Northwind sample database stored
+          as stable variables in the <code>viewer_backend</code> canister,
+          exposed through auto-generated query methods.
         </p>
         <a href="#/admin" className="admin-link">
           Open Admin Panel
@@ -82,9 +82,9 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>Stable Variable Viewer</h1>
+        <h1>Northwind Database Viewer</h1>
         <p className="subtitle">
-          Query the <code>viewer_backend</code> canister
+          Browse the <code>viewer_backend</code> canister — Northwind sample data
         </p>
       </header>
 
