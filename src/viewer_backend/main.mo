@@ -1,5 +1,7 @@
 import Map "mo:mycore/Map";
 import Nat "mo:mycore/Nat";
+import Nat32 "mo:mycore/Nat32";
+import Char "mo:mycore/Char";
 import Text "mo:mycore/Text";
 
 import Views "views";
@@ -207,6 +209,50 @@ persistent actor {
   orderDetails.add(39, {orderId = 10267; productId = 1; unitPrice = 18; quantity = 25});
   orderDetails.add(40, {orderId = 10267; productId = 7; unitPrice = 30; quantity = 15});
 
+  // ── Unicode Character Table ────────────────────────────────────
+
+  func natToHex(n : Nat) : Text {
+    let hexChars : [Text] = [
+      "0","1","2","3","4","5","6","7",
+      "8","9","A","B","C","D","E","F"
+    ];
+    if (n == 0) return "0000";
+    var result = "";
+    var val = n;
+    while (val > 0) {
+      result := hexChars[val % 16] # result;
+      val := val / 16;
+    };
+    while (result.size() < 4) {
+      result := "0" # result;
+    };
+    result;
+  };
+
+  let unicode : Map.Map<Nat, {
+    decimal : Nat;
+    hex : Text;
+    char : Text;
+  }> = Map.empty();
+
+  // U+0000 to U+D7FF (before surrogate range)
+  for (i in Nat.range(0, 0xD7FF)) {
+    unicode.add(i, {
+      decimal = i;
+      hex = natToHex(i);
+      char = Char.toText(Char.fromNat32(Nat32.fromNat(i)));
+    });
+  };
+
+  // U+E000 to U+10FFFF (after surrogate range)
+  for (i in Nat.range(0xE000, 0x10FFFF)) {
+    unicode.add(i, {
+      decimal = i;
+      hex = natToHex(i);
+      char = Char.toText(Char.fromNat32(Nat32.fromNat(i)));
+    });
+  };
+
   // ── Summary (non-paginated) ────────────────────────────────────
 
   let summary = {
@@ -217,6 +263,7 @@ persistent actor {
     totalEmployees = 9 : Nat;
     totalOrders = 20 : Nat;
     totalOrderDetails = 40 : Nat;
+    totalUnicode = 1_112_064 : Nat;
   };
 
 }
