@@ -22,9 +22,21 @@ The included backend implements the **Northwind sample database** (the classic M
 
 Each `Map`-backed table is automatically exposed as a paginated query method with signature `(opt K, nat) -> (vec (K, V)) query`, where the first argument is an optional cursor key and the second is the page size.
 
-### Internet Identity
+### Internet Identity & Access Control
 
-The frontend integrates [Internet Identity](https://identity.ic0.app/) for authentication. Users can log in from the Admin Panel; the authenticated principal is forwarded to the backend, enabling future caller-based access control.
+The frontend requires authentication via [Internet Identity](https://identity.ic0.app/). Users must log in from the Admin Panel before they can call backend query methods. In addition, the caller's principal must be registered as a **controller** of the `viewer_backend` canister — unauthenticated or unauthorised callers will be rejected.
+
+To grant a principal controller access, run:
+
+```bash
+dfx canister update-settings viewer_backend --add-controller <PRINCIPAL>
+```
+
+where `<PRINCIPAL>` is the principal shown in the Admin Panel after logging in (e.g. `abc12-...-cai`). You can verify the current controllers with:
+
+```bash
+dfx canister info viewer_backend
+```
 
 ## The `CandidUI` Component
 
