@@ -1,8 +1,21 @@
 {
   "canisters": {
+    "internet_identity": {
+      "type": "pull",
+      "id": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+    },
     "viewer_backend": {
       "main": "src/viewer_backend/main.mo",
       "type": "motoko"
+    },
+    "viewer_frontend": {
+      "dependencies": ["viewer_backend"],
+      "source": ["dist/viewer_frontend"],
+      "type": "assets",
+      "workspace": "viewer_frontend",
+      "frontend": {
+        "entrypoint": "dist/viewer_frontend/index.html"
+      }
     }
   },
   "defaults": {
