@@ -3,10 +3,15 @@ import Nat "mo:mycore/Nat";
 import Nat32 "mo:mycore/Nat32";
 import Char "mo:mycore/Char";
 import Text "mo:mycore/Text";
+import Princial "mo:mycore/Principal";
 
 import Views "views";
 
 persistent actor {
+
+  func isAdmin(p : Principal) : Bool {
+    p.isSelfAuthenticating(); // for demo purposes only
+  };
 
   include Views();
 
