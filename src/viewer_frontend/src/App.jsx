@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { AuthClient } from "@dfinity/auth-client";
-import { HttpAgent } from "@dfinity/agent";
+import { AuthClient } from "@icp-sdk/auth/client";
+import { HttpAgent } from "@icp-sdk/core/agent";
 import { idlFactory } from "../../declarations/viewer_backend/viewer_backend.did.js";
 import {
   createActor,

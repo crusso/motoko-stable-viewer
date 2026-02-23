@@ -9,14 +9,14 @@
  *
  * Props:
  *   idlFactory  – the Candid idlFactory function  ({ IDL }) => IDL.Service
- *   actor       – a @dfinity/agent Actor instance wired to the canister
+ *   actor       – an @icp-sdk/core/agent Actor instance wired to the canister
  *
  * Usage:
  *   <CandidUI idlFactory={idlFactory} actor={actor} />
  */
 
 import React, { useState, useMemo, useCallback } from "react";
-import { IDL } from "@dfinity/candid";
+import { IDL } from "@icp-sdk/core/candid";
 import "./CandidUI.css";
 
 // ── IDL type detection ───────────────────────────────────────────
