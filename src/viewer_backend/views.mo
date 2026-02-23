@@ -5,6 +5,9 @@ import Iter "mo:core/Iter";
 import Order "mo:core/Order";
 import Text "mo:core/Text";
 import Array "mo:core/Array";
+import List "mo:core/List";
+import Stack "mo:core/Stack";
+import Queue "mo:core/Queue";
 
 // custom self.view(...) methods, collected in a mixin for convenience.
 mixin () {
@@ -53,6 +56,86 @@ mixin () {
   module ArrayView {
 
    public func view<V>(self : [V]) :
+     (io : ?Nat, count : ?Nat) -> [V] =
+     func (io, count) {
+       let entries = switch io {
+         case null {
+           self.values()
+         };
+         case (?io) {
+           self.values().drop(io)
+         };
+       };
+       switch count {
+         case null { entries.toArray() };
+         case (?c) { entries.take(c).toArray() };
+       };
+    };
+  };
+
+  module VarArrayView {
+
+   public func view<V>(self : [var V]) :
+     (io : ?Nat, count : ?Nat) -> [V] =
+     func (io, count) {
+       let entries = switch io {
+         case null {
+           self.values()
+         };
+         case (?io) {
+           self.values().drop(io)
+         };
+       };
+       switch count {
+         case null { entries.toArray() };
+         case (?c) { entries.take(c).toArray() };
+       };
+    };
+  };
+
+  module ListView {
+
+   public func view<V>(self : List.List<V>) :
+     (io : ?Nat, count : ?Nat) -> [V] =
+     func (io, count) {
+       let entries = switch io {
+         case null {
+           self.values()
+         };
+         case (?io) {
+           self.values().drop(io)
+         };
+       };
+       switch count {
+         case null { entries.toArray() };
+         case (?c) { entries.take(c).toArray() };
+       };
+    };
+  };
+
+  module StackView {
+
+   public func view<V>(self : Stack.Stack<V>) :
+     (io : ?Nat, count : ?Nat) -> [V] =
+     func (io, count) {
+       let entries = switch io {
+         case null {
+           self.values()
+         };
+         case (?io) {
+           self.values().drop(io)
+         };
+       };
+       switch count {
+         case null { entries.toArray() };
+         case (?c) { entries.take(c).toArray() };
+       };
+    };
+  };
+
+  module QueueView {
+
+   public func view<V>(self : Queue.Queue<V>) :
      (io : ?Nat, count : ?Nat) -> [V] =
      func (io, count) {
        let entries = switch io {
