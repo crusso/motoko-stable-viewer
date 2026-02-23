@@ -116,13 +116,14 @@ function getServiceMethods(factory) {
 
 // ── Pagination detection ─────────────────────────────────────────
 
-/** A method is paginated when its signature is (opt T, nat) → (vec ...) */
+/** A method is paginated when its signature is (opt T, opt nat) → (vec ...) */
 function isPaginatedMethod(method) {
   const { argTypes, retTypes } = method;
   return (
     argTypes.length === 2 &&
     isOpt(argTypes[0]) &&
-    isIntType(argTypes[1]) &&
+    isOpt(argTypes[1]) &&
+    isIntType(argTypes[1]._type) &&
     retTypes.length > 0 &&
     isVec(retTypes[0])
   );
@@ -375,7 +376,8 @@ function PaginatedMethodCard({ actor, method }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const ps = Math.max(1, parseInt(pageSize, 10) || 20);
+  const parsed = parseInt(pageSize, 10);
+  const ps = pageSize.trim() === "" ? null : Math.max(1, parsed || 20);
   const pageNum = cursorStack.length + 1;
 
   const fetchPage = async (cursor) => {
@@ -384,27 +386,34 @@ function PaginatedMethodCard({ actor, method }) {
     setError(null);
     try {
       const isFirst = cursor === null;
-      // On non-first pages the backend returns the cursor row again
-      // (inclusive start), so we fetch one extra to skip that overlap,
-      // plus one extra to probe whether more rows exist.
-      const fetchCount = isFirst ? ps + 1 : ps + 2;
       const optCursor = isFirst ? [] : [cursor];
-      const raw = await actor[name](optCursor, BigInt(fetchCount));
 
-      let items;
-      let more;
-      if (isFirst) {
-        items = raw.slice(0, ps);
-        more = raw.length > ps;
+      if (ps === null) {
+        const raw = await actor[name](optCursor, []);
+        const items = isFirst ? raw : raw.slice(1);
+        setDisplayItems(items);
+        setHasMore(false);
       } else {
-        // Skip the overlap row (first result == cursor row)
-        const rest = raw.slice(1);
-        items = rest.slice(0, ps);
-        more = rest.length > ps;
-      }
+        // On non-first pages the backend returns the cursor row again
+        // (inclusive start), so we fetch one extra to skip that overlap,
+        // plus one extra to probe whether more rows exist.
+        const fetchCount = isFirst ? ps + 1 : ps + 2;
+        const raw = await actor[name](optCursor, [BigInt(fetchCount)]);
 
-      setDisplayItems(items);
-      setHasMore(more);
+        let items;
+        let more;
+        if (isFirst) {
+          items = raw.slice(0, ps);
+          more = raw.length > ps;
+        } else {
+          const rest = raw.slice(1);
+          items = rest.slice(0, ps);
+          more = rest.length > ps;
+        }
+
+        setDisplayItems(items);
+        setHasMore(more);
+      }
     } catch (e) {
       setError(e.message || String(e));
     } finally {
@@ -452,12 +461,13 @@ function PaginatedMethodCard({ actor, method }) {
       {/* Controls */}
       <div className="cui-method-params">
         <label>
-          <span className="cui-param-label">page size</span>
+          <span className="cui-param-label">page size (empty = all)</span>
           <input
-            type="number"
-            min="1"
+            type="text"
+            inputMode="numeric"
+            placeholder="all"
             value={pageSize}
-            onChange={(e) => setPageSize(e.target.value)}
+            onChange={(e) => setPageSize(e.target.value.replace(/[^0-9]/g, ""))}
           />
         </label>
         <button onClick={goFirst} disabled={loading}>
@@ -466,7 +476,7 @@ function PaginatedMethodCard({ actor, method }) {
       </div>
 
       {/* Pagination bar */}
-      {loaded && (
+      {loaded && ps !== null && (
         <div className="cui-pager">
           <button
             className="cui-pager-btn"

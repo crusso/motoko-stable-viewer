@@ -10,7 +10,7 @@ import Array "mo:core/Array";
 mixin () {
 
   module MapView {
-   public func view<K,V>(self : Map.Map<K, V>, compare : (implicit : (K,K) -> Order.Order)) : (ko : ?K, count : Nat) -> [(K, V)] =
+   public func view<K,V>(self : Map.Map<K, V>, compare : (implicit : (K,K) -> Order.Order)) : (ko : ?K, count : ?Nat) -> [(K, V)] =
       func (ko, count) {
         let entries = switch ko {
       	  case null {
@@ -20,7 +20,10 @@ mixin () {
           self.entriesFrom(k)
           };
         };
-        entries.take(count).toArray();
+        switch count {
+          case null { entries.toArray() };
+          case (?c) { entries.take(c).toArray() };
+        };
      }
   };
 
@@ -30,7 +33,7 @@ mixin () {
      self : Set.Set<K>,
      compare : (implicit : (K,K) -> Order.Order)) : (
      ko : ?K,
-     count : Nat) -> [K] =
+     count : ?Nat) -> [K] =
      func (ko, count) {
       let entries = switch ko {
         case null {
@@ -40,16 +43,18 @@ mixin () {
           self.valuesFrom(k)
         };
       };
-      entries.take(count).toArray();
+      switch count {
+        case null { entries.toArray() };
+        case (?c) { entries.take(c).toArray() };
+      };
     };
   };
 
   module ArrayView {
 
    public func view<V>(self : [V]) :
-     (io : ?Nat, count : Nat) -> [V] =
+     (io : ?Nat, count : ?Nat) -> [V] =
      func (io, count) {
-       // TODO: use slice instead
        let entries = switch io {
          case null {
            self.values()
@@ -58,7 +63,10 @@ mixin () {
            self.values().drop(io)
          };
        };
-       entries.take(count).toArray();
+       switch count {
+         case null { entries.toArray() };
+         case (?c) { entries.take(c).toArray() };
+       };
     };
   };
 
