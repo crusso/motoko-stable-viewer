@@ -20,7 +20,7 @@
   },
   "defaults": {
     "build": {
-      "args": "--package mycore /home/crusso/motoko-core/src",
+      "args": "--generate-view-queries --package mycore /home/crusso/motoko-core/src",
       "packtool": ""
     }
   },
