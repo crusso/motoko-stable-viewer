@@ -1,10 +1,10 @@
-import Map "mo:mycore/Map";
-import Set "mo:mycore/Set";
-import Nat "mo:mycore/Nat";
-import Iter "mo:mycore/Iter";
-import Order "mo:mycore/Order";
-import Text "mo:mycore/Text";
-import Array "mo:mycore/Array";
+import Map "mo:core/Map";
+import Set "mo:core/Set";
+import Nat "mo:core/Nat";
+import Iter "mo:core/Iter";
+import Order "mo:core/Order";
+import Text "mo:core/Text";
+import Array "mo:core/Array";
 
 // custom self.view(...) methods, collected in a mixin for convenience.
 mixin () {

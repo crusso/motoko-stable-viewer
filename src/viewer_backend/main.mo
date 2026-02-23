@@ -1,9 +1,9 @@
-import Map "mo:mycore/Map";
-import Nat "mo:mycore/Nat";
-import Nat32 "mo:mycore/Nat32";
-import Char "mo:mycore/Char";
-import Text "mo:mycore/Text";
-import Debug "mo:mycore/Debug";
+import Map "mo:core/Map";
+import Nat "mo:core/Nat";
+import Nat32 "mo:core/Nat32";
+import Char "mo:core/Char";
+import Text "mo:core/Text";
+import Debug "mo:core/Debug";
 
 import Views "views";
 
