@@ -369,9 +369,12 @@ function PaginatedMethodCard({ actor, method }) {
   const sig = `(${argTypes.map((t) => typeLabel(t)).join(", ")}) \u2192 (${retTypes.map((t) => typeLabel(t)).join(", ")})`;
 
   const [pageSize, setPageSize] = useState("20");
+  const [startKey, setStartKey] = useState("");
   const [displayItems, setDisplayItems] = useState(null);
   const [hasMore, setHasMore] = useState(false);
-  const [currentCursor, setCurrentCursor] = useState(null);
+  // Each entry in the stack is { cursor, newStart } so goPrev can
+  // replay the fetch with the same semantics that produced that page.
+  const [current, setCurrent] = useState({ cursor: null, newStart: true });
   const [cursorStack, setCursorStack] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -380,29 +383,28 @@ function PaginatedMethodCard({ actor, method }) {
   const ps = pageSize.trim() === "" ? null : Math.max(1, parsed || 20);
   const pageNum = cursorStack.length + 1;
 
-  const fetchPage = async (cursor) => {
+  // newStart distinguishes a fresh query (user-specified start or
+  // beginning) from a pagination continuation where the backend
+  // returns the cursor row again as an overlap to skip.
+  const fetchPage = async (cursor, newStart) => {
     if (!actor) return;
     setLoading(true);
     setError(null);
     try {
-      const isFirst = cursor === null;
-      const optCursor = isFirst ? [] : [cursor];
+      const optCursor = cursor === null ? [] : [cursor];
 
       if (ps === null) {
         const raw = await actor[name](optCursor, []);
-        const items = isFirst ? raw : raw.slice(1);
+        const items = newStart ? raw : raw.slice(1);
         setDisplayItems(items);
         setHasMore(false);
       } else {
-        // On non-first pages the backend returns the cursor row again
-        // (inclusive start), so we fetch one extra to skip that overlap,
-        // plus one extra to probe whether more rows exist.
-        const fetchCount = isFirst ? ps + 1 : ps + 2;
+        const fetchCount = newStart ? ps + 1 : ps + 2;
         const raw = await actor[name](optCursor, [BigInt(fetchCount)]);
 
         let items;
         let more;
-        if (isFirst) {
+        if (newStart) {
           items = raw.slice(0, ps);
           more = raw.length > ps;
         } else {
@@ -422,26 +424,28 @@ function PaginatedMethodCard({ actor, method }) {
   };
 
   const goFirst = () => {
-    setCurrentCursor(null);
+    const cursor =
+      startKey.trim() === "" ? null : convertInput(cursorType, startKey);
+    setCurrent({ cursor, newStart: true });
     setCursorStack([]);
-    fetchPage(null);
+    fetchPage(cursor, true);
   };
 
   const goNext = () => {
     if (!displayItems || displayItems.length === 0) return;
     const lastItem = displayItems[displayItems.length - 1];
     const nextCursor = extractCursor(retType, lastItem, cursorType);
-    setCursorStack((prev) => [...prev, currentCursor]);
-    setCurrentCursor(nextCursor);
-    fetchPage(nextCursor);
+    setCursorStack((prev) => [...prev, current]);
+    setCurrent({ cursor: nextCursor, newStart: false });
+    fetchPage(nextCursor, false);
   };
 
   const goPrev = () => {
     if (cursorStack.length === 0) return;
-    const prevCursor = cursorStack[cursorStack.length - 1];
-    setCursorStack((prev) => prev.slice(0, -1));
-    setCurrentCursor(prevCursor);
-    fetchPage(prevCursor);
+    const prev = cursorStack[cursorStack.length - 1];
+    setCursorStack((s) => s.slice(0, -1));
+    setCurrent(prev);
+    fetchPage(prev.cursor, prev.newStart);
   };
 
   const loaded = displayItems !== null;
@@ -460,6 +464,17 @@ function PaginatedMethodCard({ actor, method }) {
 
       {/* Controls */}
       <div className="cui-method-params">
+        <label>
+          <span className="cui-param-label">
+            start : <code>{typeLabel(cursorType)}</code> (empty = first)
+          </span>
+          <input
+            type={isNumType(cursorType) ? "number" : "text"}
+            placeholder="beginning"
+            value={startKey}
+            onChange={(e) => setStartKey(e.target.value)}
+          />
+        </label>
         <label>
           <span className="cui-param-label">page size (empty = all)</span>
           <input
