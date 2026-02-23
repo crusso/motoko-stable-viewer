@@ -9,8 +9,12 @@
       "type": "motoko"
     },
     "viewer_frontend": {
-      "dependencies": ["viewer_backend"],
-      "source": ["dist/viewer_frontend"],
+      "dependencies": [
+        "viewer_backend"
+      ],
+      "source": [
+        "dist/viewer_frontend"
+      ],
       "type": "assets",
       "workspace": "viewer_frontend",
       "frontend": {
@@ -21,7 +25,7 @@
   "defaults": {
     "build": {
       "args": "--generate-view-queries --package mycore /home/crusso/motoko-core/src",
-      "packtool": ""
+      "packtool": "mops sources"
     }
   },
   "output_env_file": ".env",
