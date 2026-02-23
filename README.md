@@ -26,6 +26,8 @@ Each `Map`-backed table is automatically exposed as a paginated query method wit
 
 The frontend requires authentication via [Internet Identity](https://identity.ic0.app/). Users must log in from the Admin Panel before they can call backend query methods. In addition, the caller's principal must be registered as a **controller** of the `viewer_backend` canister — unauthenticated or unauthorised callers will be rejected.
 
+> **Note:** In this demo, the `isAdmin` function in `main.mo` unconditionally returns `true`, allowing _any_ authenticated principal to call the view queries — not just controllers or the actor itself. In a production deployment you would replace this with a real authorisation check.
+
 To grant a principal controller access, run:
 
 ```bash
